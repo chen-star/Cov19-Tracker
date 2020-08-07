@@ -1,7 +1,9 @@
 package com.alex.cov19.tracker.service;
 
+import com.alex.cov19.tracker.model.CountryDetail;
 import com.alex.cov19.tracker.model.DailyStates;
 import com.alex.cov19.tracker.model.DailySummary;
+import com.alex.cov19.tracker.model.WorldSummary;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -54,6 +56,16 @@ public class FetchMainPageDataServiceImpl implements FetchMainPageDataService {
         return fetchDailyStates();
     }
 
+    @Override
+    public WorldSummary fetchDataWorldSummary() {
+        return fetchWorldSummary();
+    }
+
+    @Override
+    public List<CountryDetail> fetchDataCountryDetail() {
+        return fetchCountryDetail();
+    }
+
     private List<DailySummary> fetchDailySummary() {
         String result = restTemplate.getForObject(DAILY_SUMMARY_URL, String.class);
 
@@ -69,6 +81,29 @@ public class FetchMainPageDataServiceImpl implements FetchMainPageDataService {
         JsonArray jsonArray = (JsonArray) parser.parse(result);
         return sortByPositive(jsonArray);
     }
+
+    private WorldSummary fetchWorldSummary() {
+        String result = restTemplate.getForObject(DAILY_SUMMARY_URL, String.class);
+
+        JsonObject object = (JsonObject) parser.parse(result);
+        JsonObject jsonObject = object.getAsJsonObject("Global");
+
+        WorldSummary worldSummary = new WorldSummary();
+        worldSummary.setTotalConfirmed(jsonObject.get("TotalConfirmed").getAsLong());
+        worldSummary.setTotalDeaths(jsonObject.get("TotalDeaths").getAsLong());
+        worldSummary.setTotalRecovered(jsonObject.get("TotalRecovered").getAsLong());
+        return worldSummary;
+    }
+
+    private List<CountryDetail> fetchCountryDetail() {
+        String result = restTemplate.getForObject(DAILY_SUMMARY_URL, String.class);
+
+        JsonObject object = (JsonObject) parser.parse(result);
+        JsonArray jsonArray = object.getAsJsonArray("Countries");
+
+        return sortByTotalConfirmed(jsonArray);
+    }
+
 
     private List<DailySummary> sortByConfirmed(JsonArray jsonArray) {
         List<DailySummary> sortedDailySummaries = new ArrayList<>();
@@ -105,9 +140,29 @@ public class FetchMainPageDataServiceImpl implements FetchMainPageDataService {
             sortedDailyStates.add(dailyStates);
         }
 
-        System.out.println(sortedDailyStates);
         return sortedDailyStates;
     }
+
+
+    private List<CountryDetail> sortByTotalConfirmed(JsonArray jsonArray) {
+        List<CountryDetail> sortedCountryDetails = new ArrayList<>();
+
+        List<JsonObject> jsonValues = new ArrayList<JsonObject>();
+        for (int i = 0; i < jsonArray.size(); i++) {
+            jsonValues.add(jsonArray.get(i).getAsJsonObject());
+        }
+
+        jsonValues.sort(createComparator("TotalConfirmed"));
+
+        for (int i = 0; i < 20; i++) {
+            JsonObject cur = jsonValues.get(i);
+            CountryDetail countryDetail = createCountryDetail(cur);
+            sortedCountryDetails.add(countryDetail);
+        }
+
+        return sortedCountryDetails;
+    }
+
 
     private DailySummary createDailySummary(JsonObject cur) {
         DailySummary dailySummary = new DailySummary();
@@ -123,6 +178,16 @@ public class FetchMainPageDataServiceImpl implements FetchMainPageDataService {
         dailyStates.setStateCode(cur.getAsJsonPrimitive("state").getAsString());
         dailyStates.setPositive(cur.getAsJsonPrimitive("positive").getAsInt());
         return dailyStates;
+    }
+
+    private CountryDetail createCountryDetail(JsonObject cur) {
+        CountryDetail countryDetail = new CountryDetail();
+        countryDetail.setCountry(cur.getAsJsonPrimitive("Country").getAsString());
+        countryDetail.setNewConfirmed(cur.getAsJsonPrimitive("NewConfirmed").getAsInt());
+        countryDetail.setNewRecovered(cur.getAsJsonPrimitive("NewRecovered").getAsInt());
+        countryDetail.setTotalConfirmed(cur.getAsJsonPrimitive("TotalConfirmed").getAsInt());
+        countryDetail.setTotalRecovered(cur.getAsJsonPrimitive("TotalRecovered").getAsInt());
+        return countryDetail;
     }
 
     private Comparator<JsonObject> createComparator(String key) {

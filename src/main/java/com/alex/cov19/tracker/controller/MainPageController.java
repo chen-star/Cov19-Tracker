@@ -1,7 +1,9 @@
 package com.alex.cov19.tracker.controller;
 
+import com.alex.cov19.tracker.model.CountryDetail;
 import com.alex.cov19.tracker.model.DailyStates;
 import com.alex.cov19.tracker.model.DailySummary;
+import com.alex.cov19.tracker.model.WorldSummary;
 import com.alex.cov19.tracker.service.FetchMainPageDataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +32,15 @@ public class MainPageController {
     public ModelAndView getMainPage() {
         List<DailySummary> sortedSummary = fetchMainPageDataService.fetchDataDailySummary();
         List<DailyStates> sortedSates = fetchMainPageDataService.fetchDataDailyStates();
+        WorldSummary worldSummary = fetchMainPageDataService.fetchDataWorldSummary();
+        List<CountryDetail> countryDetails = fetchMainPageDataService.fetchDataCountryDetail();
 
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.setViewName("index");
         modelAndView.addObject("summary", sortedSummary);
         modelAndView.addObject("states", sortedSates);
+        modelAndView.addObject("worldSummary", worldSummary);
+        modelAndView.addObject("countryDetails", countryDetails);
         return modelAndView;
     }
 }
